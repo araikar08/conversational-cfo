@@ -614,6 +614,60 @@ def process_receipt(input_data: ReceiptInput) -> str:
         return json.dumps({"status": "greeting_sent", "message": greeting})
 
 
+# Poke Webhook Handler (for bidirectional integration)
+@mcp.app.post("/webhook/poke")
+async def poke_webhook_handler(request):
+    """
+    Handle incoming messages from Poke
+    Makes the integration bidirectional - receive messages from Poke!
+
+    Expected Poke webhook format:
+    {
+      "user_id": "string",
+      "message": "string",
+      "attachments": [{"type": "image", "url": "string"}]
+    }
+    """
+    try:
+        from fastapi import Request
+
+        data = await request.json()
+        logger.info(f"📱 Poke Webhook: Received message from {data.get('user_id')}")
+
+        user_id = data.get("user_id", "unknown")
+        message = data.get("message", "")
+        attachments = data.get("attachments", [])
+
+        # Extract image URL from attachments
+        image_url = None
+        for attachment in attachments:
+            if attachment.get("type") == "image":
+                image_url = attachment.get("url")
+                break
+
+        # Process via MCP tool
+        result = process_receipt(ReceiptInput(
+            user_id=user_id,
+            message=message,
+            image_url=image_url
+        ))
+
+        logger.info(f"✅ Poke Webhook: Processed message for {user_id}")
+
+        return {
+            "status": "success",
+            "message": "Receipt processed via Poke webhook",
+            "result": result
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Poke Webhook error: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     host = "0.0.0.0"
