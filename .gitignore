@@ -5,3 +5,22 @@ __pycache__/
 .venv/
 venv/
 *.env
+
+# Test files
+test_*.json
+*_test.json
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
