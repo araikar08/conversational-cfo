@@ -614,6 +614,11 @@ def get_billing() -> str:
         cursor.execute("SELECT COUNT(*) FROM ai_costs")
         total_ops = cursor.fetchone()[0]
 
+        # Per-lead costs (BEFORE closing connection!)
+        cursor.execute("SELECT COUNT(DISTINCT email) FROM leads")
+        lead_count = cursor.fetchone()[0] or 1
+        cost_per_lead = total_cost / lead_count if lead_count > 0 else 0
+
         conn.close()
 
         # Calculate actual savings based on model mix
@@ -631,12 +636,6 @@ def get_billing() -> str:
         estimated_without_lava = total_cost + gpt4o_only_cost
         savings = gpt4o_only_cost
         savings_pct = int((savings / estimated_without_lava) * 100) if estimated_without_lava > 0 else 0
-
-        # Per-lead costs
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(DISTINCT email) FROM leads")
-        lead_count = cursor.fetchone()[0] or 1
-        cost_per_lead = total_cost / lead_count if lead_count > 0 else 0
 
         return json.dumps({
             "status": "success",
