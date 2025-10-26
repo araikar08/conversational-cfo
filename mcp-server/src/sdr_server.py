@@ -378,20 +378,43 @@ def suggest_action(input_data: ActionInput) -> str:
 
         name, company, title, context, stage = row
 
-        # Use AI to suggest action
-        prompt = f"""You are an expert sales strategist. Based on this lead's profile, suggest the single best next action.
+        # Generate smart suggestion based on stage and context
+        # (Using rule-based for demo - in production would use Lava GPT-4o-mini)
+        suggestions = {
+            "new": [
+                f"Connect on LinkedIn and mention your Cal Hacks conversation",
+                f"Send personalized intro email highlighting relevant use cases",
+                f"Research {company}'s tech stack and tailor your pitch"
+            ],
+            "contacted": [
+                f"Follow up with case study relevant to {company}",
+                f"Schedule 15-min demo call this week",
+                f"Share pricing and ROI breakdown"
+            ],
+            "demo": [
+                f"Send investor deck - they're raising capital",
+                f"Provide technical integration docs",
+                f"Schedule follow-up with decision makers"
+            ],
+            "closed": [
+                f"Send onboarding materials and schedule kickoff",
+                f"Request testimonial or case study",
+                f"Ask for referrals to similar companies"
+            ]
+        }
 
-Lead: {name} ({title} @ {company})
-Context: {context}
-Stage: {stage}
+        # Pick suggestion based on stage and context keywords
+        stage_suggestions = suggestions.get(stage, suggestions["new"])
+        if "raised" in context.lower() or "seed" in context.lower():
+            suggestion = f"Send investor deck - mention their recent fundraise"
+        elif "hiring" in context.lower():
+            suggestion = f"Mention your hiring automation features"
+        elif "conference" in context.lower() or "cal hacks" in context.lower():
+            suggestion = f"Follow up: 'Great meeting you at Cal Hacks!'"
+        else:
+            suggestion = stage_suggestions[0]
 
-Suggest ONE specific, actionable next step (max 15 words). Be creative and personalized."""
-
-        messages = [HumanMessage(content=prompt)]
-        response = action_llm.invoke(messages)
-        suggestion = response.content.strip()
-
-        # Track cost (~100 tokens)
+        # Track cost (~100 tokens - simulated for demo)
         cost = track_ai_cost("suggest_action", "gpt-4o-mini", 100, input_data.email)
 
         # Update lead
