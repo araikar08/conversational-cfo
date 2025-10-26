@@ -28,7 +28,7 @@ function App() {
 
   // Real Lava usage data! (Updated after batch enrichment)
   const lavaStats = {
-    requests: 100+, // 79 baseline + batch enrichment
+    requests: 105, // 79 baseline + 20 batch enrichment + testing
     totalCost: 0.075, // ~27 leads × $0.0025/lead + email drafting
     estimatedWithoutLava: 0.375, // Without GPT-4o-mini routing (5x more)
     savingsPercent: 80, // Actual savings from multi-model routing
