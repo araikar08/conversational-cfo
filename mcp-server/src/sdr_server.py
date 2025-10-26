@@ -180,6 +180,11 @@ class SearchInput(BaseModel):
     query: str = Field(..., description="Search query (name, company, tags, etc)")
 
 
+class EmailInput(BaseModel):
+    """Input model for drafting cold email"""
+    email: str = Field(..., description="Email address of the lead")
+
+
 # Helper functions
 def send_poke_message(message: str) -> bool:
     """Send a message via Poke API"""
@@ -491,6 +496,88 @@ def search_leads(input_data: SearchInput) -> str:
         return json.dumps({"status": "error", "message": str(e)})
 
 
+@mcp.tool(description="Draft personalized cold email using AI")
+def draft_cold_email(input_data: EmailInput) -> str:
+    """
+    Draft a personalized cold email using GPT-4o via Lava
+    Uses enriched lead data to create compelling outreach
+
+    Args:
+        input_data: EmailInput with email address
+
+    Returns:
+        JSON string with drafted email and cost
+    """
+    try:
+        # Get lead data
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT name, company, title, context, stage FROM leads WHERE email = ?",
+            (input_data.email,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return json.dumps({"status": "error", "message": "Lead not found"})
+
+        name, company, title, context, stage = row
+
+        # Use GPT-4o via Lava to draft email
+        prompt = f"""You are an expert sales copywriter. Draft a compelling cold email to this lead.
+
+Lead Profile:
+- Name: {name}
+- Title: {title}
+- Company: {company}
+- Context: {context}
+- Stage: {stage}
+
+Requirements:
+- Keep it under 150 words
+- Personalize based on their context
+- Clear value proposition
+- Strong call-to-action
+- Professional but friendly tone
+- Subject line + body
+
+Format:
+Subject: [subject line]
+
+[email body]"""
+
+        messages = [HumanMessage(content=prompt)]
+        response = enrichment_llm.invoke(messages)  # Using GPT-4o via Lava
+        draft = response.content.strip()
+
+        # Track cost (~300 tokens for email generation)
+        cost = track_ai_cost("draft_email", "gpt-4o", 300, input_data.email)
+
+        logger.info(f"📧 Cold email drafted for {input_data.email} | Cost: ${cost:.6f}")
+
+        # Send via Poke
+        poke_message = f"""📧 Cold Email Drafted for {name}
+
+{draft}
+
+💰 AI Cost: ${cost:.6f} via Lava (GPT-4o)
+"""
+        send_poke_message(poke_message)
+
+        return json.dumps({
+            "status": "success",
+            "email": input_data.email,
+            "draft": draft,
+            "ai_cost": round(cost, 6),
+            "message": "Email drafted successfully! Ready to send."
+        }, indent=2)
+
+    except Exception as e:
+        logger.error(f"Error drafting email: {e}")
+        return json.dumps({"status": "error", "message": str(e)})
+
+
 @mcp.tool(description="Get AI billing summary powered by Lava cost tracking")
 def get_billing() -> str:
     """
@@ -529,20 +616,49 @@ def get_billing() -> str:
 
         conn.close()
 
-        # Calculate savings (using GPT-4o for everything would be 5x more expensive)
-        estimated_without_lava = total_cost * 5
-        savings_pct = 80  # Conservative estimate
+        # Calculate actual savings based on model mix
+        # If we used GPT-4o for EVERYTHING instead of routing
+        gpt4o_only_cost = 0
+        for item in breakdown:
+            if item["model"] == "gpt-4o-mini":
+                # These used gpt-4o-mini, calculate what GPT-4o would cost
+                # GPT-4o-mini: $0.15/1M tokens, GPT-4o: $5/1M tokens (33x more expensive)
+                gpt4o_only_cost += item["cost"] * 33.33
+            else:
+                gpt4o_only_cost += item["cost"]
+
+        # Add Lava's actual cost (if we weren't using smart routing)
+        estimated_without_lava = total_cost + gpt4o_only_cost
+        savings = gpt4o_only_cost
+        savings_pct = int((savings / estimated_without_lava) * 100) if estimated_without_lava > 0 else 0
+
+        # Per-lead costs
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(DISTINCT email) FROM leads")
+        lead_count = cursor.fetchone()[0] or 1
+        cost_per_lead = total_cost / lead_count if lead_count > 0 else 0
 
         return json.dumps({
             "status": "success",
-            "total_cost": round(total_cost, 4),
-            "total_operations": total_ops,
+            "summary": {
+                "total_cost": round(total_cost, 4),
+                "total_operations": total_ops,
+                "leads_processed": lead_count,
+                "cost_per_lead": round(cost_per_lead, 6)
+            },
             "cost_breakdown": breakdown,
             "lava_savings": {
-                "with_lava": round(total_cost, 4),
+                "with_lava_routing": round(total_cost, 4),
                 "without_lava_routing": round(estimated_without_lava, 4),
+                "savings_amount": round(savings, 4),
                 "savings_percent": savings_pct,
-                "message": f"Lava's smart routing saved ${round(estimated_without_lava - total_cost, 4)}"
+                "message": f"💰 Lava saved ${round(savings, 4)} ({savings_pct}% cost reduction)"
+            },
+            "business_metrics": {
+                "saas_price": 10.00,
+                "cogs_per_lead": round(cost_per_lead, 6),
+                "gross_margin_percent": int(((10.00 - cost_per_lead) / 10.00) * 100),
+                "message": f"At $10/mo SaaS pricing, {int(((10.00 - cost_per_lead) / 10.00) * 100)}% gross margins!"
             },
             "powered_by": "Lava Build - Multi-model AI routing"
         }, indent=2)
