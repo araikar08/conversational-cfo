@@ -4,8 +4,6 @@
 
 Built for **Cal Hacks 12.0** - Competing for Lava Build ($2.5K) + Poke (Meta Ray-Bans + AirPods Pro 3)
 
-**Live Demo:** [MCP Server on Render](https://poke-sdr-mcp.onrender.com/mcp)
-
 ---
 
 ## 🎥 Demo Video
