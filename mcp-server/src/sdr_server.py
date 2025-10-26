@@ -276,16 +276,13 @@ def add_lead(input_data: LeadInput) -> str:
         logger.info(f"✅ New lead added: {input_data.email}")
 
         # Send Poke notification
-        send_poke_message(f"✅ Added lead: {input_data.email}\n\nEnriching profile...")
-
-        # Auto-trigger enrichment
-        enrich_result = enrich_contact(EnrichInput(email=input_data.email))
+        send_poke_message(f"✅ Lead added: {input_data.email}\n\n💡 Tip: Use 'Enrich Contact' to get AI-powered profile details!")
 
         return json.dumps({
             "status": "success",
-            "message": f"Lead {input_data.email} added and enriched",
+            "message": f"Lead {input_data.email} added successfully",
             "email": input_data.email,
-            "next_step": "Review enriched profile and suggested action"
+            "next_step": "Use 'Enrich Contact' tool to get profile details and suggested actions"
         }, indent=2)
 
     except Exception as e:
@@ -329,19 +326,15 @@ def enrich_contact(input_data: EnrichInput) -> str:
 
         logger.info(f"✅ Enriched: {input_data.email}")
 
-        # Auto-trigger action suggestion
-        action_result = suggest_action(ActionInput(email=input_data.email))
-        action_data = json.loads(action_result)
-
-        # Send comprehensive Poke update
+        # Send Poke update
         poke_message = f"""✅ Profile Enriched: {enriched_data['name']}
 
 📋 {enriched_data['title']} @ {enriched_data['company']}
 💡 {enriched_data['context']}
 
-🎯 Suggested Action: {action_data.get('suggestion', 'Follow up soon')}
+💰 AI Cost: ${cost:.6f} via Lava (GPT-4o)
 
-💰 AI Cost: ${cost:.6f} via Lava
+💡 Tip: Use 'Suggest Action' to get next steps!
 """
         send_poke_message(poke_message)
 
@@ -350,7 +343,7 @@ def enrich_contact(input_data: EnrichInput) -> str:
             "email": input_data.email,
             "enriched_data": enriched_data,
             "ai_cost": round(cost, 6),
-            "suggested_action": action_data.get('suggestion')
+            "next_step": "Use 'Suggest Action' tool to get personalized next steps"
         }, indent=2)
 
     except Exception as e:
