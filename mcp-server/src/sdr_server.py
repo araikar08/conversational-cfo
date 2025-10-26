@@ -66,8 +66,8 @@ action_llm = ChatOpenAI(
 )
 
 # Database setup
-# Use /data volume on Render, fall back to local for dev
-DB_PATH = Path(os.getenv("DB_PATH", str(Path(__file__).parent.parent / "leads.db")))
+# Uses ephemeral storage on Render (fine for demo - auto-seeds on startup)
+DB_PATH = Path(__file__).parent.parent / "leads.db"
 
 def init_database():
     """Initialize SQLite database with leads table"""
@@ -111,6 +111,27 @@ def init_database():
 
 # Initialize DB on startup
 init_database()
+
+# Auto-seed database if empty (for demo purposes)
+def auto_seed_if_empty():
+    """Automatically seed database with demo data if it's empty"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM leads")
+    count = cursor.fetchone()[0]
+    conn.close()
+
+    if count == 0:
+        logger.info("📊 Database is empty - auto-seeding with demo data...")
+        # Import and run seed script
+        from pathlib import Path
+        import subprocess
+        seed_script = Path(__file__).parent.parent / "seed_leads.py"
+        if seed_script.exists():
+            subprocess.run(["python", str(seed_script)], check=True)
+        logger.info("✅ Auto-seed completed!")
+
+auto_seed_if_empty()
 
 # Cost tracking
 def track_ai_cost(operation: str, model: str, estimated_tokens: int, lead_email: Optional[str] = None) -> float:

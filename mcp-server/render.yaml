@@ -15,9 +15,3 @@ services:
         sync: false
       - key: PORT
         value: "8000"
-      - key: DB_PATH
-        value: /data/leads.db
-    disk:
-      name: poke-sdr-db
-      mountPath: /data
-      sizeGB: 1
