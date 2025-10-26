@@ -8,6 +8,18 @@ Built for **Cal Hacks 12.0** - Competing for Lava Build ($2.5K) + Poke (Meta Ray
 
 ---
 
+## 🎥 Demo Video
+
+[Watch the 3-minute demo](https://vimeo.com/1130627301?share=copy&fl=sv&fe=ci)
+
+Highlights:
+- Lava dashboard showing 79 API calls, $0.12 cost
+- All 6 MCP tools demonstrated via Poke conversation
+- Real-time cost tracking and business metrics
+- localhost dashboard with pipeline visualization
+
+---
+
 ## 🎯 The Problem
 
 AI SaaS tools are expensive to run. Most founders blindly send every request to GPT-4o at $5/1M tokens, making profitability impossible at typical SaaS pricing. Sales development tools are especially problematic - they need AI for enrichment, email drafting, and action suggestions, but can't justify the costs.
@@ -272,17 +284,6 @@ At scale (100K users × 10 leads/mo):
 ✅ **Deployed to production** (Render)
 ✅ **Built in 48 hours** at Cal Hacks 12.0
 
----
-
-## 🎥 Demo Video
-
-[Watch the 3-minute demo](https://devpost.com/your-project-link)
-
-Highlights:
-- Lava dashboard showing 79 API calls, $0.12 cost
-- All 6 MCP tools demonstrated via Poke conversation
-- Real-time cost tracking and business metrics
-- localhost dashboard with pipeline visualization
 
 ---
 
@@ -320,9 +321,9 @@ MIT License - Built for Cal Hacks 12.0
 
 ## 📧 Contact
 
-Built by [Your Name](https://github.com/yourusername)
+Built by [Aryan Raikar](https://github.com/araikar08)
 
-Questions? Open an issue or reach out on [Twitter](https://twitter.com/yourhandle)
+Questions? Open an issue
 
 ---
 
