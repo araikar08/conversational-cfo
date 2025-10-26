@@ -46,3 +46,7 @@ direct_test.py
 simple_test.py
 *.md
 !README.md
+
+# Database
+*.db
+*.db-journal

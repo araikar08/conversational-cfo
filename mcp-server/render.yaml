@@ -1,17 +1,23 @@
 services:
   - type: web
-    name: conversational-cfo
+    name: poke-sdr-mcp
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python src/server.py
+    startCommand: python src/sdr_server.py
     plan: free
     autoDeploy: false
     envVars:
-      - key: ENVIRONMENT
-        value: production
       - key: LAVA_FORWARD_TOKEN
         sync: false
       - key: LAVA_BASE_URL
         value: https://api.lavapayments.com/v1/forward
       - key: POKE_API_KEY
         sync: false
+      - key: PORT
+        value: "8000"
+      - key: DB_PATH
+        value: /data/leads.db
+    disk:
+      name: poke-sdr-db
+      mountPath: /data
+      sizeGB: 1

@@ -2,8 +2,6 @@
 """
 Poke MCP Server for Conversational Expense Tracking
 Implements receipt OCR and conversational categorization workflow.
-
-Now powered by Fetch.ai multi-agent system for intelligent orchestration!
 """
 
 import os
@@ -28,10 +26,6 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Fetch.ai Agent System
-USE_AGENT_SYSTEM = os.getenv("USE_AGENT_SYSTEM", "true").lower() == "true"
-logger.info(f"🤖 Fetch.ai Agent System: {'ENABLED' if USE_AGENT_SYSTEM else 'DISABLED'}")
 
 # Initialize FastMCP server
 mcp = FastMCP("Conversational CFO MCP Server")
@@ -351,81 +345,10 @@ def get_user_costs(user_id: str) -> str:
     }, indent=2)
 
 
-@mcp.tool(description="Check status of Fetch.ai multi-agent system and ASI:One compatibility")
-def check_agent_status() -> str:
-    """
-    Return status and details of all Fetch.ai agents
-
-    Returns:
-        JSON string with agent system status
-    """
-    try:
-        from agents import ocr_agent, categorizer_agent, messaging_agent, coordinator_agent
-
-        return json.dumps({
-            "agent_system": "Fetch.ai uAgents Framework",
-            "status": "active",
-            "agents": [
-                {
-                    "name": "OCR Agent",
-                    "address": ocr_agent.address,
-                    "port": 8001,
-                    "role": "Receipt image processing via GPT-4o vision",
-                    "status": "active"
-                },
-                {
-                    "name": "Categorizer Agent",
-                    "address": categorizer_agent.address,
-                    "port": 8002,
-                    "role": "Expense categorization via GPT-4o-mini",
-                    "status": "active"
-                },
-                {
-                    "name": "Messaging Agent",
-                    "address": messaging_agent.address,
-                    "port": 8003,
-                    "role": "Poke API communication",
-                    "status": "active"
-                },
-                {
-                    "name": "Coordinator Agent",
-                    "address": coordinator_agent.address,
-                    "port": 8004,
-                    "role": "Workflow orchestration + ASI:One chat protocol",
-                    "chat_protocol": "enabled",
-                    "agentverse_registered": True,
-                    "asi_one_compatible": True,
-                    "status": "active"
-                }
-            ],
-            "capabilities": {
-                "multi_agent_orchestration": True,
-                "asi_one_discoverable": True,
-                "chat_protocol": "enabled",
-                "agentverse_marketplace": "registered"
-            },
-            "architecture": "Coordinator delegates to specialized agents (OCR → Categorizer → Messaging)",
-            "agentverse_url": "https://agentverse.ai"
-        }, indent=2)
-    except Exception as e:
-        logger.error(f"Error checking agent status: {e}")
-        return json.dumps({
-            "error": "Could not load agent system",
-            "message": str(e),
-            "fallback_mode": "Direct processing (non-agent mode)"
-        }, indent=2)
-
-
-@mcp.tool(description="Process receipt images and text for expense tracking with conversational workflow powered by Fetch.ai agents")
+@mcp.tool(description="Process receipt images and text for expense tracking with conversational workflow")
 def process_receipt(input_data: ReceiptInput) -> str:
     """
     Main tool for processing receipts with conversational workflow
-
-    Powered by Fetch.ai multi-agent system:
-    - OCR Agent: Handles image processing via GPT-4o
-    - Categorizer Agent: Handles expense categorization via GPT-4o-mini
-    - Messaging Agent: Handles Poke communication
-    - Coordinator Agent: Orchestrates the workflow
 
     Handles three scenarios:
     1. New receipt image - performs OCR and attempts extraction
@@ -444,34 +367,11 @@ def process_receipt(input_data: ReceiptInput) -> str:
 
     logger.info(f"Processing receipt for user {user_id}, has_image={bool(image_url)}, message_len={len(message)}")
 
-    # Use Fetch.ai agent system if enabled
-    if USE_AGENT_SYSTEM:
-        logger.info("🤖 Using Fetch.ai Agent System for orchestration")
-        try:
-            from agents import process_receipt_with_agents
-            # Note: In a full implementation, this would be async
-            # For demo purposes, we're using a simplified synchronous call
-            # The agents are still defined and can be shown to judges
-        except ImportError:
-            logger.warning("⚠️  Agent system not available, falling back to direct processing")
-    else:
-        logger.info("Using direct processing (agent system disabled)")
+    logger.info("Using direct processing")
 
     # Scenario 1: New receipt with image
     if image_url:
         logger.info(f"Scenario 1: Processing new receipt image for {user_id}")
-
-        # Enhanced Fetch.ai agent workflow logging
-        if USE_AGENT_SYSTEM:
-            logger.info("=" * 70)
-            logger.info("🤖 FETCH.AI AGENT WORKFLOW STARTED")
-            logger.info("=" * 70)
-            try:
-                from agents import ocr_agent, categorizer_agent, messaging_agent, coordinator_agent
-                logger.info(f"📋 Coordinator Agent ({coordinator_agent.address[:20]}...) orchestrating workflow")
-                logger.info(f"   → Step 1: Delegating to OCR Agent ({ocr_agent.address[:20]}...)")
-            except:
-                pass
 
         # Perform OCR
         ocr_text = perform_ocr(image_url)
@@ -484,14 +384,6 @@ def process_receipt(input_data: ReceiptInput) -> str:
         ocr_tokens = len(ocr_text) // 3  # Rough estimate: ~3 chars per token
         ocr_cost = track_lava_cost(user_id, "gpt-4o", ocr_tokens, "OCR")
 
-        if USE_AGENT_SYSTEM:
-            logger.info(f"✅ OCR Agent completed: {len(ocr_text)} characters extracted")
-            try:
-                from agents import categorizer_agent
-                logger.info(f"   → Step 2: Delegating to Categorizer Agent ({categorizer_agent.address[:20]}...)")
-            except:
-                pass
-
         # Extract expense data
         extraction_result = extract_expense_data(ocr_text)
 
@@ -499,32 +391,12 @@ def process_receipt(input_data: ReceiptInput) -> str:
         categorization_tokens = len(ocr_text) // 4  # Estimate
         categorization_cost = track_lava_cost(user_id, "gpt-4o-mini", categorization_tokens, "Categorization")
 
-        if USE_AGENT_SYSTEM:
-            logger.info(f"✅ Categorizer Agent completed: {extraction_result['status']}")
-
         if extraction_result["status"] == "complete":
             # All data extracted successfully
             data = extraction_result["data"]
 
             # Increment receipt counter
             USER_COSTS[user_id]["receipts_processed"] += 1
-
-            # Add Fetch.ai agent metadata to response
-            try:
-                from agents import ocr_agent, categorizer_agent, messaging_agent, coordinator_agent
-                data["_agent_metadata"] = {
-                    "processed_by": "Fetch.ai Multi-Agent System",
-                    "agents_used": [
-                        {"name": "OCR Agent", "address": ocr_agent.address, "task": "Receipt image processing"},
-                        {"name": "Categorizer Agent", "address": categorizer_agent.address, "task": "Expense categorization"},
-                        {"name": "Messaging Agent", "address": messaging_agent.address, "task": "User communication"}
-                    ],
-                    "coordinator": coordinator_agent.address,
-                    "asi_one_compatible": True,
-                    "chat_protocol_enabled": True
-                }
-            except:
-                data["_agent_metadata"] = {"note": "Agent system available but not loaded"}
 
             # Add Lava cost data
             data["_lava_cost_data"] = {
@@ -537,21 +409,8 @@ def process_receipt(input_data: ReceiptInput) -> str:
                 }
             }
 
-            if USE_AGENT_SYSTEM:
-                try:
-                    from agents import messaging_agent
-                    logger.info(f"   → Step 3: Delegating to Messaging Agent ({messaging_agent.address[:20]}...)")
-                except:
-                    pass
-
-            success_msg = f"✅ Receipt processed by Fetch.ai agents!\n\nVendor: {data['vendor']}\nAmount: ${data['amount']}\nCategory: {data['category']}\n\n💰 Cost: ${data['_lava_cost_data']['this_receipt_cost']} (via Lava)\n🤖 Processed by {len(data['_agent_metadata'].get('agents_used', []))} agents"
+            success_msg = f"✅ Receipt processed!\n\nVendor: {data['vendor']}\nAmount: ${data['amount']}\nCategory: {data['category']}\n\n💰 Cost: ${data['_lava_cost_data']['this_receipt_cost']} (via Lava)"
             PokeReplyTool.send_message(user_id, success_msg)
-
-            if USE_AGENT_SYSTEM:
-                logger.info(f"✅ Messaging Agent completed: Message sent")
-                logger.info("=" * 70)
-                logger.info("🤖 FETCH.AI AGENT WORKFLOW COMPLETE")
-                logger.info("=" * 70)
 
             return json.dumps(data, indent=2)
 
@@ -615,57 +474,60 @@ def process_receipt(input_data: ReceiptInput) -> str:
 
 
 # Poke Webhook Handler (for bidirectional integration)
-@mcp.app.post("/webhook/poke")
-async def poke_webhook_handler(request):
-    """
-    Handle incoming messages from Poke
-    Makes the integration bidirectional - receive messages from Poke!
-
-    Expected Poke webhook format:
-    {
-      "user_id": "string",
-      "message": "string",
-      "attachments": [{"type": "image", "url": "string"}]
-    }
-    """
-    try:
-        from fastapi import Request
-
-        data = await request.json()
-        logger.info(f"📱 Poke Webhook: Received message from {data.get('user_id')}")
-
-        user_id = data.get("user_id", "unknown")
-        message = data.get("message", "")
-        attachments = data.get("attachments", [])
-
-        # Extract image URL from attachments
-        image_url = None
-        for attachment in attachments:
-            if attachment.get("type") == "image":
-                image_url = attachment.get("url")
-                break
-
-        # Process via MCP tool
-        result = process_receipt(ReceiptInput(
-            user_id=user_id,
-            message=message,
-            image_url=image_url
-        ))
-
-        logger.info(f"✅ Poke Webhook: Processed message for {user_id}")
-
-        return {
-            "status": "success",
-            "message": "Receipt processed via Poke webhook",
-            "result": result
-        }
-
-    except Exception as e:
-        logger.error(f"❌ Poke Webhook error: {e}")
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+# NOTE: Commented out for demo - FastMCP doesn't directly expose .app.post()
+# For production, this would be implemented via custom FastAPI routes
+#
+# @mcp.app.post("/webhook/poke")
+# async def poke_webhook_handler(request):
+#     """
+#     Handle incoming messages from Poke
+#     Makes the integration bidirectional - receive messages from Poke!
+#
+#     Expected Poke webhook format:
+#     {
+#       "user_id": "string",
+#       "message": "string",
+#       "attachments": [{"type": "image", "url": "string"}]
+#     }
+#     """
+#     try:
+#         from fastapi import Request
+#
+#         data = await request.json()
+#         logger.info(f"📱 Poke Webhook: Received message from {data.get('user_id')}")
+#
+#         user_id = data.get("user_id", "unknown")
+#         message = data.get("message", "")
+#         attachments = data.get("attachments", [])
+#
+#         # Extract image URL from attachments
+#         image_url = None
+#         for attachment in attachments:
+#             if attachment.get("type") == "image":
+#                 image_url = attachment.get("url")
+#                 break
+#
+#         # Process via MCP tool
+#         result = process_receipt(ReceiptInput(
+#             user_id=user_id,
+#             message=message,
+#             image_url=image_url
+#         ))
+#
+#         logger.info(f"✅ Poke Webhook: Processed message for {user_id}")
+#
+#         return {
+#             "status": "success",
+#             "message": "Receipt processed via Poke webhook",
+#             "result": result
+#         }
+#
+#     except Exception as e:
+#         logger.error(f"❌ Poke Webhook error: {e}")
+#         return {
+#             "status": "error",
+#             "message": str(e)
+#         }
 
 
 if __name__ == "__main__":
@@ -680,23 +542,6 @@ if __name__ == "__main__":
     logger.info(f"OCR Model: gpt-4o (via Lava)")
     logger.info(f"Reasoning Model: gpt-4o-mini (via Lava)")
     logger.info("="*70)
-
-    # Initialize Fetch.ai Agent System
-    if USE_AGENT_SYSTEM:
-        try:
-            from agents import get_agent_bureau
-            agents = get_agent_bureau()
-            logger.info("🤖 FETCH.AI MULTI-AGENT SYSTEM INITIALIZED")
-            logger.info("="*70)
-            logger.info("   Agents:")
-            logger.info("   - OCR Agent: Receipt image processing")
-            logger.info("   - Categorizer Agent: Expense categorization")
-            logger.info("   - Messaging Agent: Poke communication")
-            logger.info("   - Coordinator Agent: Workflow orchestration")
-            logger.info("="*70)
-        except Exception as e:
-            logger.warning(f"⚠️  Could not initialize agent system: {e}")
-            logger.warning("   Continuing with direct processing mode")
 
     logger.info("✅ Server starting...")
     logger.info("")
