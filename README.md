@@ -192,8 +192,8 @@ conversational-cfo/
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/conversational-cfo.git
-cd conversational-cfo
+git clone https://github.com/araikar08/poke-sdr.git
+cd poke-sdr
 ```
 
 ### 2. MCP Server Setup
@@ -319,9 +319,9 @@ MIT License - Built for Cal Hacks 12.0
 
 ## 📧 Contact
 
-Built by [Aryan Raikar](https://github.com/araikar08)
+Built by [Aryan Raikar](https://github.com/araikar08) for Cal Hacks 12.0
 
-Questions? Open an issue
+Questions? Open an issue on GitHub
 
 ---
 
